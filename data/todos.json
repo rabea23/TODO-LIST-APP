@@ -1,0 +1,74 @@
+[
+  {
+    "id": 1743667847191,
+    "title": "barber app frontend",
+    "description": "need to make a frontend for a barber shop ",
+    "completed": false,
+    "dueDate": "1997-03-23",
+    "priority": "medium",
+    "createdAt": "2025-04-03T08:10:47.191Z"
+  },
+  {
+    "id": 1743667917352,
+    "title": "super market backend app",
+    "description": "need to make db for the supermarket app",
+    "completed": false,
+    "dueDate": "",
+    "priority": "medium",
+    "createdAt": "2025-04-03T08:11:57.352Z"
+  },
+  {
+    "id": 1743680186446,
+    "title": "julian ",
+    "description": "julian samrt house ",
+    "completed": false,
+    "dueDate": null,
+    "priority": "medium",
+    "createdAt": "2025-04-03T11:36:26.446Z"
+  },
+  {
+    "id": 1743682006306,
+    "title": "aa",
+    "description": "",
+    "completed": false,
+    "dueDate": null,
+    "priority": "medium",
+    "createdAt": "2025-04-03T12:06:46.307Z"
+  },
+  {
+    "id": 1743682016203,
+    "title": "aaaaa",
+    "description": "swrerterws",
+    "completed": false,
+    "dueDate": null,
+    "priority": "medium",
+    "createdAt": "2025-04-03T12:06:56.203Z"
+  },
+  {
+    "id": 1743682611149,
+    "title": "ddddd",
+    "description": "",
+    "completed": false,
+    "dueDate": null,
+    "priority": "medium",
+    "createdAt": "2025-04-03T12:16:51.149Z"
+  },
+  {
+    "id": 1743683364839,
+    "title": "eeee",
+    "description": "tg",
+    "completed": false,
+    "dueDate": null,
+    "priority": "low",
+    "createdAt": "2025-04-03T12:29:24.840Z"
+  },
+  {
+    "id": 1743696102169,
+    "title": "awe",
+    "description": "",
+    "completed": false,
+    "dueDate": null,
+    "priority": "high",
+    "createdAt": "2025-04-03T16:01:42.169Z"
+  }
+]
