@@ -6,8 +6,6 @@
 
 ### Installation
 ```bash
-# Clone repository
-git clone [your-repo-url]
 cd todo-app
 
 # Install dependencies
