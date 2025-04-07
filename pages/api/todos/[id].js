@@ -18,12 +18,13 @@ const writeTodos = (todos) => {
 export default function handler(req, res) {
   try {
     const { id } = req.query; // Get ID from URL
+    const addDelay = () => new Promise(resolve => setTimeout(resolve, 1000));
 
     // PUT - Update todo
     if (req.method === 'PUT') {
       const { title, description, dueDate, priority, completed } = req.body;
       let todos = readTodos();
-      
+     
       todos = todos.map(todo => 
         todo.id === Number(id) ? { 
           ...todo,

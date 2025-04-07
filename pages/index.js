@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 
+
 export default function Home() {
   // State
   const [todos, setTodos] = useState([]);
@@ -9,11 +10,14 @@ export default function Home() {
   const [priority, setPriority] = useState('medium');
   const [filter, setFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
+  const [errorMsg, setErrorMsg] = useState('');//for empty title and past date 
   const [loading, setLoading] = useState({
     initial: true,    // Initial data load
     adding: false,    // Adding new todo
     saving: false     // Saving edits
   });
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [todoToDelete, setTodoToDelete] = useState(null); 
   const [editingId, setEditingId] = useState(null);
   const [editData, setEditData] = useState({
     title: '',
@@ -22,7 +26,7 @@ export default function Home() {
     priority: 'medium'
   });
 
-  // 1-second delay for adding todos
+  
   const addDelay = () => new Promise(resolve => setTimeout(resolve, 1000));
 
   // Fetch todos from API
@@ -30,9 +34,14 @@ export default function Home() {
     const fetchTodos = async () => {
       try {
         const res = await fetch('/api/todos');
+        if (!res.ok) throw new Error('Failed to fetch tasks.');
         const data = await res.json();
         setTodos(data);
-      } finally {
+      }
+      catch (err) {
+      setErrorMsg('Failed to fetch todos');
+      setTimeout(() => setErrorMsg(''), 3000);
+    }finally {
         setLoading(prev => ({ ...prev, initial: false }));
       }
     };
@@ -41,7 +50,17 @@ export default function Home() {
 
   // Add new todo with 1-second delay
   const handleAdd = async () => {
-    if (!title.trim()) return;
+    if (!title.trim()) {
+      setErrorMsg('Title is required!');
+      setTimeout(() => setErrorMsg(''), 3000);
+      return
+    };
+
+    if (dueDate && new Date(dueDate) < new Date().setHours(0, 0, 0, 0)) {
+    setErrorMsg("Can't set a  date in the past.");
+    setTimeout(() => setErrorMsg(''), 3000);
+    return
+    };
     
     try {
       setLoading(prev => ({ ...prev, adding: true }));
@@ -52,12 +71,20 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, description, dueDate, priority }),
       });
+       if (!res.ok) {
+    const errorData = await res.json();
+    throw new Error(errorData.error || 'Failed to add task');
+      }
       const newTodo = await res.json();
       setTodos([...todos, newTodo]);
       setTitle('');
       setDescription('');
       setDueDate('');
-    } finally {
+    }catch (err) {
+     setErrorMsg(err.message || 'Something went wrong while adding the task.');
+     setTimeout(() => setErrorMsg(''), 3000);
+    }
+    finally {
       setLoading(prev => ({ ...prev, adding: false }));
     }
   };
@@ -75,16 +102,30 @@ export default function Home() {
 
   // Save edited todo
   const saveEdit = async () => {
-    if (!editData.title.trim()) return;
+    if (!editData.title.trim()) {
+      setErrorMsg('Title is required!');
+      setTimeout(() => setErrorMsg(''), 3000);
+      return
+    };
+    
+    if (dueDate && new Date(dueDate) < new Date().setHours(0, 0, 0, 0)) {
+    setErrorMsg("Can't set a  date in the past !");
+    setTimeout(() => setErrorMsg(''), 3000);
+    return
+    };
     
     try {
       setLoading(prev => ({ ...prev, saving: true }));
+      await addDelay();
       const res = await fetch(`/api/todos/${editingId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(editData),
       });
-      
+      if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.error || 'Failed to update task.');
+    }
       setTodos(todos.map(todo => 
         todo.id === editingId ? { ...todo, ...editData } : todo
       ));
@@ -102,21 +143,49 @@ export default function Home() {
   // Toggle completion
   const handleToggle = async (id) => {
     const todo = todos.find(t => t.id === id);
-    await fetch(`/api/todos/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ completed: !todo.completed }),
-    });
-    setTodos(todos.map(t => 
-      t.id === id ? { ...t, completed: !t.completed } : t
-    ));
+    try {
+      const res = await fetch(`/api/todos/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ completed: !todo.completed }),
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to update completion status.');
+      }
+      setTodos(todos.map(t =>
+        t.id === id ? { ...t, completed: !t.completed } : t
+      ));
+    }catch (err) {
+    setErrorMsg(err.message || 'Something went wrong while updating.');
+    setTimeout(() => setErrorMsg(''), 3000);
+  }
+  };
+   
+  const handleDelete = (id) => {
+   setTodoToDelete(id);
+   setShowConfirm(true);
   };
 
-  // Delete todo
-  const handleDelete = async (id) => {
-    await fetch(`/api/todos/${id}`, { method: 'DELETE' });
-    setTodos(todos.filter(t => t.id !== id));
-  };
+ const confirmDelete = async () => {
+   if (!todoToDelete) return;
+   try{
+
+  const res = await fetch(`/api/todos/${todoToDelete}`, { method: 'DELETE' });
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.error || 'Failed to delete task.');
+    }
+
+  setTodos(todos.filter(t => t.id !== todoToDelete));
+  setShowConfirm(false);
+     setTodoToDelete(null);
+      } catch (err) {
+    setErrorMsg(err.message || 'Something went wrong while deleting.');
+    setTimeout(() => setErrorMsg(''), 3000);
+  }
+};
+
 
   // Filter and sort
   const filteredTodos = todos.filter(todo => {
@@ -143,6 +212,7 @@ export default function Home() {
     );
   }
   return (
+
   <div className="min-h-screen bg-gray-100/0">
   
     <div className="fixed inset-0 -z-10">
@@ -163,6 +233,37 @@ export default function Home() {
           </div>
 
           <div className="p-4 border-b">
+            {showConfirm && (
+              <div className="fixed inset-0  flex items-center justify-center pt-4 z-50">
+               <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-sm text-center">
+                <h2 className="text-lg font-semibold mb-2 text-gray-800">Delete Task</h2>
+                <p className="text-gray-600 mb-6">Are you sure you want to delete this task?</p>
+                <div className="flex justify-center gap-4">
+                  <button
+                    onClick={confirmDelete}
+                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
+                  >
+                    Yes, Delete
+                  </button>
+                    <button
+                   onClick={() => {
+                    setShowConfirm(false);
+                    setTodoToDelete(null);
+                   }}
+                   className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+            )}
+             {/* Error Message */}
+             {errorMsg && (
+              <div className="mb-2 text-red-600 font-semibold text-sm bg-red-100 border border-red-300 p-2 rounded">
+                 {errorMsg}
+               </div>
+             )}
             <input
               type="text"
               placeholder="Task title *"
@@ -170,6 +271,7 @@ export default function Home() {
               onChange={(e) => setTitle(e.target.value)}
               className="w-full p-2 mb-2 border rounded"
               disabled={loading.adding}
+              
             />
             <textarea
               placeholder="Description"
@@ -287,11 +389,19 @@ export default function Home() {
                         <button
                           onClick={saveEdit}
                           disabled={loading.saving}
-                          className={`flex-1 bg-green-600 text-white py-1 rounded ${
+                          className={`flex-1 bg-green-600 text-white py-1 rounded flex items-center justify-center ${
                             loading.saving ? 'opacity-50 cursor-not-allowed' : ''
                           }`}
                         >
-                          {loading.saving ? 'Saving...' : 'Save'}
+                          {loading.saving ? (
+                            <span className="flex items-center">
+                              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                             </svg>
+                             Saving...
+                           </span>
+                          ) : 'save'}
                         </button>
                         <button
                           onClick={cancelEdit}
@@ -302,17 +412,25 @@ export default function Home() {
                       </div>
                     </div>
                   ) : (
-                    <div className="flex items-start">
-                      <input
-                        type="checkbox"
-                        checked={todo.completed}
-                        onChange={() => handleToggle(todo.id)}
-                        className="mt-1 mr-3 h-5 w-5"
-                      />
+                      <div className="flex items-start">
+                      <div className="mr-4">
+                      <button
+                       onClick={() => handleToggle(todo.id)}
+                       className={`text-xs px-2 py-2 mb-2 rounded-full font-semibold ${
+                        todo.completed
+                         ? 'bg-green-500 text-white hover:bg-green-600'
+                        : 'bg-gray-300 text-gray-700 hover:bg-gray-400'
+                         
+                       }`}
+                     >
+                        {todo.completed ? '✓ Done' : 'Mark Done'}
+                          </button>
+                      </div>
+
                       <div className="flex-1">
                         <div className="flex justify-between">
                           <h3 className={`font-medium ${
-                            todo.completed ? 'line-through text-gray-500' : 'text-gray-800'
+                            todo.completed ? 'text-gray-500' : 'text-gray-800'
                           }`}>
                             {todo.title}
                           </h3>
@@ -352,7 +470,8 @@ export default function Home() {
                 </li>
               ))}
             </ul>
-          )}
+              )}
+            
         </div>
       </div>
     </div>
